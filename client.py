@@ -13,14 +13,14 @@ def Main():
         sys.exit()
 
     print("Enter 'quit' to exit")
-    message = input(" -> ")
+    message = raw_input(" -> ")
 
     while message != 'quit':
         soc.sendall(message.encode("utf8"))
         if soc.recv(5120).decode("utf8") == "-":
             pass        # null operation
 
-        message = input(" -> ")
+        message = raw_input(" -> ")
 
     soc.send(b'--quit--')
 
