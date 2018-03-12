@@ -38,7 +38,7 @@ def Main():
 
     print("User certificate received: ", certificate)
     print("Enter 'quit' to exit")
-    
+
     message = raw_input(" -> ")
 
     while message != 'quit':
