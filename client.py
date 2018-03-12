@@ -43,7 +43,7 @@ def Main():
 
     while message != 'quit':
         soc.sendall(helpers.encrypt_sym(message, sym_key, iv))
-        if helpers.decrypt_sym(soc.recv(max_buffer_size), sym_key, iv).decode("utf8") == "-":
+        if helpers.decrypt_sym(soc.recv(max_buffer_size), sym_key, iv).decode("utf-8") == "-":
             pass        # null operation
 
         message = raw_input(" -> ")
