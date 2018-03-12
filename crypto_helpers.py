@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 def get_hash(message):
     m = hashlib.sha256()
-    m.update(message)
+    m.update(message.encode('utf-8'))
     return m.hexdigest()
 
 
@@ -65,17 +65,3 @@ def decrypt_asym(ciphertext, private_key):
             label=None
         )
     )
-
-#
-# message = "It works!!"
-#
-# sym_key, iv = gen_sym_key()
-# public_key, private_key = gen_asym_keys()
-#
-# ciphertext = encrypt_asym(sym_key, public_key)
-# received_key = decrypt_asym(ciphertext, private_key)
-#
-# ciphertext2 = encrypt_sym(message, received_key, iv)
-# received2 = decrypt_sym(ciphertext2, received_key, iv)
-#
-# print(received2)
