@@ -1,4 +1,6 @@
+import random
 import socket
+import string
 import sys
 import crypto_helpers as helpers
 from cryptography.hazmat.backends import default_backend
@@ -39,6 +41,11 @@ def Main():
     print("User certificate received: ", certificate)
     print("Enter 'quit' to exit")
 
+    paywords = generate_payword_chain(100)
+    c0 = paywords[len(paywords) - 1]
+
+    # TODO continue with commitment to pay towards V
+
     message = raw_input(" -> ")
 
     while message != 'quit':
@@ -51,5 +58,20 @@ def Main():
     soc.send(helpers.encrypt_sym(b'--quit--', sym_key, iv))
 
 
+def generate_payword_chain(chain_size=100):
+    result = list()
+    current_hash = helpers.get_hash(''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(50)))
+
+    result.append(current_hash)
+    count = 1
+    while count < chain_size:
+        current_hash = helpers.get_hash(current_hash)
+        result.append(current_hash)
+        count += 1
+
+    return result
+
+
 if __name__ == "__main__":
     Main()
+    generate_payword_chain()
