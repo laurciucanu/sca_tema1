@@ -2,6 +2,9 @@ import random
 import socket
 import string
 import sys
+
+import datetime
+
 import crypto_helpers as helpers
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -19,6 +22,8 @@ def Main():
         print("Connection error")
         sys.exit()
 
+    public_key, private_key = helpers.gen_asym_keys()
+
     server_public_key = soc.recv(max_buffer_size)
     server_public_key = serialization.load_pem_public_key(
         server_public_key,
@@ -29,6 +34,11 @@ def Main():
     encrypted_sym_key = helpers.encrypt_asym(sym_key, server_public_key)
     soc.send(encrypted_sym_key)
     soc.send(iv)
+
+    soc.send(public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ))
 
     print("Initialized tunnel mode with key ", sym_key)
 
@@ -41,22 +51,35 @@ def Main():
     print("User certificate received: ", certificate)
     print("Enter 'quit' to exit")
 
+
+    # generating paywords
     paywords = generate_payword_chain(100)
     c0 = paywords[len(paywords) - 1]
 
-    # TODO continue with commitment to pay towards V
+    # new commitment
+    seller_commitment = commitment("PLACEHOLDER-FOR-A-SELLER-IDENTITY", certificate, paywords[len(paywords) - 1])
 
-    message = raw_input(" -> ")
+    soc.send(helpers.encrypt_sym(helpers.get_hash(seller_commitment).encode("utf-8"), sym_key, iv))
+    soc.send(helpers.encrypt_sym(seller_commitment.encode("utf-8"), sym_key, iv))
 
-    while message != 'quit':
-        soc.sendall(helpers.encrypt_sym(message, sym_key, iv))
-        if helpers.decrypt_sym(soc.recv(max_buffer_size), sym_key, iv).decode("utf-8") == "-":
-            pass        # null operation
+    print("commitment sent", seller_commitment)
 
-        message = raw_input(" -> ")
+    payment_value = 10
 
-    soc.send(helpers.encrypt_sym(b'--quit--', sym_key, iv))
+    for i in range(1, payment_value + 1):
+        soc.send(helpers.encrypt_sym(paywords[len(paywords) - i], sym_key, iv))
+    soc.send(helpers.encrypt_sym("END", sym_key, iv))
 
+    print("payment of " + str(payment_value) + " made")
+
+    new_payment_value = 10
+
+    soc.send(helpers.encrypt_sym("CONTINUE", sym_key, iv))
+    for i in range(1, new_payment_value + 1):
+        soc.send(helpers.encrypt_sym(paywords[len(paywords) - i - payment_value], sym_key, iv))
+    soc.send(helpers.encrypt_sym("END", sym_key, iv))
+
+    soc.send(helpers.encrypt_sym("QUIT", sym_key, iv))
 
 def generate_payword_chain(chain_size=100):
     result = list()
@@ -72,6 +95,11 @@ def generate_payword_chain(chain_size=100):
     return result
 
 
+def commitment(seller_public_key, certificate, c0, credit_limitation=100):
+    #current date
+    d = datetime.date.today() + datetime.timedelta(days=1)
+    return str(seller_public_key) + " " + certificate + " " + c0 + " " + str(d) + " " + str(credit_limitation)
+
+
 if __name__ == "__main__":
     Main()
-    generate_payword_chain()
